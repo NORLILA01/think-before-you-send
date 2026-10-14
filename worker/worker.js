@@ -14,7 +14,13 @@ const DEFAULT_MODEL = "mistralai/mistral-small-3.2-24b-instruct";
 // Allowed response languages. The client sends only the code; the instruction text is fixed here.
 const LANG_RULES = {
   en: "Write the values of feeling, impact, tip and starter in English.",
-  ms: "Write the values of feeling, impact, tip and starter in Bahasa Melayu Malaysia (Malaysian Malay, not Indonesian vocabulary: use words such as mesej, hantar, pelajar, pilihan kata). Keep the JSON keys and the boolean exactly as specified.",
+  ms: [
+    "Write the values of feeling, impact, tip and starter in Bahasa Melayu Malaysia (standard Malaysian Malay). Keep the JSON keys and the boolean exactly as specified.",
+    "Style: short, plain sentences with common everyday words; address the writer as \"anda\" (never \"kamu\" or \"engkau\"); do not use English words; if unsure of a Malay word, use a simpler common one instead of inventing a word.",
+    "Prefer Malaysian vocabulary: mesej, hantar, pelajar, pilihan kata, kecewa or geram (not \"frustrasi\"), berasa (not \"merasa\"), terhina or tersinggung (insulted), diabaikan (ignored), enggan (unwilling), huraikan (describe), langkah seterusnya (next step).",
+    "The starter is a natural sentence opener that the writer completes, for example \"Saya berasa kecewa apabila\"; do not end it with dots.",
+    "Style example only; never copy it: {\"aggressive\": true, \"feeling\": \"kecewa kerana tugasan bersama tidak bergerak\", \"impact\": \"pembaca mungkin berasa diserang dan enggan mendengar\", \"tip\": \"Huraikan apa yang berlaku dan minta satu langkah seterusnya yang jelas.\", \"starter\": \"Saya berasa kecewa apabila\"}",
+  ].join(" "),
 };
 
 const SYSTEM = `You are a calm, non-judgmental communication coach inside a "think before you send" tool.
