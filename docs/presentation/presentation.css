@@ -72,7 +72,7 @@ mark sup { font: 800 18px var(--head); margin-left: 3px; }
 .refl { font-size: 26px; margin: 14px 0 0; color: var(--ink-soft); }
 
 /* slide 5 */
-.arch { display: grid; grid-template-columns: 1fr .2fr 1fr; align-items: stretch; gap: 0; flex: 1; margin-bottom: 14px; }
+.arch { display: grid; grid-template-columns: 1fr .3fr 1fr; align-items: stretch; gap: 0; flex: 1; margin-bottom: 14px; }
 .zone { border-radius: 22px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
 .zone--local { background: var(--ok-bg); border: 3px dashed var(--lagoon); }
 .zone--ext { background: var(--info-bg); border: 3px dashed var(--cobalt); }
@@ -138,3 +138,27 @@ mark sup { font: 800 18px var(--head); margin-left: 3px; }
   .controls { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---- bilingual additions ---- */
+.slide .tagline { font-size: 36px; margin: 12px 0 22px; }
+.slide .sit { font-size: 26px; margin-bottom: 16px; }
+.card p.q--sm { font-size: 26px; line-height: 1.4; }
+.card .gloss, .gloss { font-size: 20px; color: var(--ink-soft); font-style: italic; line-height: 1.35; margin-top: 10px; }
+.card .gloss[hidden] { display: none; }
+.slide .legend { font-size: 22px; margin-top: 10px; line-height: 1.4; }
+.card .refl { font-size: 24px; margin: 12px 0 0; color: var(--ink-soft); }
+.slide .note { font-size: 24px; }
+.msg span { display: block; }
+.controls { flex-wrap: wrap; }
+.lang-switch { display: inline-flex; border: 2px solid #9DB4FF; border-radius: 10px; overflow: hidden; }
+.lang-btn { font: 700 18px/1 var(--head); min-width: 56px; min-height: 44px; padding: 8px 14px; background: transparent; color: #fff; border: 0; cursor: pointer; }
+.lang-btn + .lang-btn { border-left: 2px solid #9DB4FF; }
+.lang-btn:hover { background: #1B2F7A; }
+.lang-btn[aria-pressed="true"] { background: #fff; color: #0E1B2E; }
+.lang-btn[aria-pressed="true"]::before { content: "\2713\00a0"; }
+.lang-btn:focus-visible { outline-offset: -4px; outline-color: #FFD9B8; }
+html[lang="ms-MY"] .slide h1 { font-size: 58px; }
+html[lang="ms-MY"] .slide h2 { font-size: 40px; }
+html[lang="ms-MY"] .close h1 { font-size: 48px; }
+@media print { .lang-switch { display: none !important; } }
+html[lang="ms-MY"] .two p { font-size: 26px; }

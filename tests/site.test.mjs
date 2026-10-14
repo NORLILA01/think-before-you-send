@@ -12,6 +12,8 @@ const DOCS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "docs
 const HTML = fs.readFileSync(path.join(DOCS, "index.html"), "utf8");
 const DETECTOR_JS = fs.readFileSync(path.join(DOCS, "detector.js"), "utf8");
 const SITE_JS = fs.readFileSync(path.join(DOCS, "assets", "js", "site.js"), "utf8");
+const I18N_JS = fs.readFileSync(path.join(DOCS, "assets", "js", "i18n.js"), "utf8");
+const LANG_JS = fs.readFileSync(path.join(DOCS, "assets", "js", "lang.js"), "utf8");
 const MODEL = fs.readFileSync(path.join(DOCS, "model.json"), "utf8");
 
 const FLAGGED = "you are such a stupid idiot, you never listen";   // band: block
@@ -19,9 +21,14 @@ const BORDER = "you are an a$$hole";                                 // band: bo
 const SAFE = "thanks for the update, see you tomorrow";             // band: ok
 const tick = (n = 5) => new Promise((r) => { let i = 0; const f = () => (++i >= n ? r() : setTimeout(f, 0)); f(); });
 
-async function mount({ modelFails = false, coach = null } = {}) {
+async function mount({ modelFails = false, coach = null, lang = "en", storage = "ok" } = {}) {
   const dom = new JSDOM(HTML, { runScripts: "outside-only", url: "https://drmurtadha.github.io/think-before-you-send/", pretendToBeVisual: true });
   const win = dom.window, doc = win.document;
+  if (storage === "blocked") {
+    Object.defineProperty(win, "localStorage", { get() { throw new win.DOMException("blocked", "SecurityError"); } });
+  } else if (lang) {
+    win.localStorage.setItem("tbys-lang", lang);      // existing tests run in English; lang=null means first visit
+  }
   const calls = [];            // every fetch
   const coachCalls = [];       // POST /coach bodies
   let failModel = modelFails;
@@ -42,6 +49,8 @@ async function mount({ modelFails = false, coach = null } = {}) {
     return Promise.reject(new Error("unexpected fetch " + url));
   };
   win.eval(DETECTOR_JS);
+  win.eval(I18N_JS);
+  win.eval(LANG_JS);
   win.eval(SITE_JS);
   await tick();
   const $ = (id) => doc.getElementById(id);
@@ -74,7 +83,8 @@ test("check is disabled until the model has loaded, then enabled", async () => {
   const win = dom.window;
   let release;
   win.fetch = () => new Promise((r) => { release = () => r({ ok: true, json: async () => JSON.parse(MODEL) }); });
-  win.eval(DETECTOR_JS); win.eval(SITE_JS);
+  win.localStorage.setItem("tbys-lang", "en");
+  win.eval(DETECTOR_JS); win.eval(I18N_JS); win.eval(LANG_JS); win.eval(SITE_JS);
   const btn = win.document.getElementById("check");
   assert.equal(btn.disabled, true);
   assert.match(win.document.getElementById("status").textContent, /Loading the checker/);
@@ -130,7 +140,7 @@ test("flagged draft: disclosure sits with the button; click sends exactly the ch
   assert.match(btn.parentElement.textContent, /This sends the checked draft to a third-party AI service\./);
   assert.equal(t.coachCalls.length, 0);
   t.click(btn); await tick(8);
-  assert.deepEqual(t.coachCalls, [{ message: FLAGGED, band: "block" }]);
+  assert.deepEqual(t.coachCalls, [{ message: FLAGGED, band: "block", lang: "en" }]);
   const out = t.$("coach-out").textContent;
   assert.match(out, /frustrated/);
   assert.match(out, /I feel ignored when/);
@@ -227,7 +237,9 @@ test("nothing is persisted: no storage, cookies or URL/history changes", async (
   t.click(t.$("write-revision"));
   t.type(t.$("revision"), "I feel ignored when you interrupt me.");
   t.click(t.$("check-revision")); await tick();
-  assert.equal(t.win.localStorage.length, 0);
+  // the display-language code is the only thing stored; no draft, reflection or revision text
+  assert.deepEqual(Object.keys(t.win.localStorage), ["tbys-lang"]);
+  assert.equal(t.win.localStorage.getItem("tbys-lang"), "en");
   assert.equal(t.win.sessionStorage.length, 0);
   assert.equal(t.win.document.cookie, "");
   assert.equal(t.win.location.href, "https://drmurtadha.github.io/think-before-you-send/");
@@ -264,4 +276,135 @@ test("reset cancels a pending request so a late reply cannot appear", async () =
   if (resolveCoach) resolveCoach();
   await tick(8);
   assert.equal(t.resultText(), "");
+});
+
+
+// ===================== bilingual behaviour =====================
+const I18N = (await import("node:module")).createRequire(import.meta.url)(path.join(DOCS, "assets", "js", "i18n.js"));
+const NOTICE = {
+  ms: "Versi semasa menyemak mesej dalam bahasa Inggeris. Ketepatan bagi mesej Bahasa Melayu atau bahasa bercampur belum dinilai.",
+  en: "The current version checks English messages. Performance on Malay or mixed-language messages has not been evaluated.",
+};
+const btnText = (t, sel) => t.doc.querySelector(sel).textContent.trim();
+
+test("first visit defaults to Bahasa Melayu with lang=ms-MY and an accessible switch", async () => {
+  const t = await mount({ lang: null });
+  assert.equal(t.doc.documentElement.getAttribute("lang"), "ms-MY");
+  assert.equal(btnText(t, "#check"), "Semak mesej saya");
+  const ms = t.doc.querySelector('[data-set-lang="ms"]'), en = t.doc.querySelector('[data-set-lang="en"]');
+  assert.equal(ms.getAttribute("aria-pressed"), "true");
+  assert.equal(en.getAttribute("aria-pressed"), "false");
+  assert.equal(ms.getAttribute("aria-label"), "Bahasa Melayu");
+  assert.equal(en.getAttribute("aria-label"), "English");
+  assert.equal(ms.tagName, "BUTTON");                       // keyboard-operable native controls
+  assert.doesNotMatch(t.doc.querySelector(".lang-switch").innerHTML, /flag|\u{1F1E6}-\u{1F1FF}/u);
+});
+
+test("switching language keeps draft, reflection, revision, result and AI reply, and sends nothing", async () => {
+  const t = await mount({ lang: "ms", coach: () => okJson(SUGG) });
+  await t.check(FLAGGED);
+  t.click(t.$("coach-btn")); await tick(8);
+  t.type(t.$("reflection"), "Saya akan buang penghinaan itu.");
+  t.click(t.$("write-revision"));
+  t.type(t.$("revision"), "I feel ignored when you interrupt me.");
+  t.click(t.$("check-revision")); await tick();
+  const before = { draft: t.$("draft").value, refl: t.$("reflection").value, rev: t.$("revision").value,
+                   coachOut: t.$("coach-out").textContent, fetches: t.calls.length, coach: t.coachCalls.length,
+                   statusMs: t.$("status").textContent };
+  assert.match(t.resultText(), /Pilihan kata ini mungkin terdengar agresif/);
+  t.click(t.doc.querySelector('[data-set-lang="en"]')); await tick();
+  assert.equal(t.doc.documentElement.getAttribute("lang"), "en");
+  assert.equal(t.$("draft").value, before.draft);
+  assert.equal(t.$("reflection").value, before.refl);
+  assert.equal(t.$("revision").value, before.rev);
+  assert.match(t.resultText(), /This wording may come across as aggressive/);
+  assert.match(t.$("coach-out").textContent, /frustrated/);            // original AI reply retained, not re-requested
+  assert.match(t.$("coach-out").textContent, /generated in Malay/);   // honest note about its language
+  assert.match(t.$("revision-result").textContent, /Original draft/);
+  assert.notEqual(t.$("status").textContent, before.statusMs);
+  assert.equal(t.calls.length, before.fetches, "no fetch caused by switching");
+  assert.equal(t.coachCalls.length, before.coach);
+  assert.equal(t.$("reflect").hidden, false);
+  assert.equal(t.$("revision-wrap").hidden, false);
+});
+
+test("coaching request carries the language chosen at request time; allow-listed code only", async () => {
+  const t = await mount({ lang: "ms", coach: () => okJson(SUGG) });
+  await t.check(FLAGGED);
+  t.click(t.$("coach-btn")); await tick(8);
+  t.click(t.doc.querySelector('[data-set-lang="en"]')); await tick();
+  await t.check(FLAGGED);
+  t.click(t.$("coach-btn")); await tick(8);
+  assert.deepEqual(t.coachCalls.map((c) => c.lang), ["ms", "en"]);
+  assert.ok(t.coachCalls.every((c) => ["ms", "en"].includes(c.lang)));
+  assert.deepEqual(Object.keys(t.coachCalls[0]).sort(), ["band", "lang", "message"]);
+});
+
+test("the language choice is restored on a later visit", async () => {
+  const a = await mount({ lang: null });
+  a.click(a.doc.querySelector('[data-set-lang="en"]'));
+  assert.equal(a.win.localStorage.getItem("tbys-lang"), "en");
+  const b = await mount({ lang: a.win.localStorage.getItem("tbys-lang") });
+  assert.equal(b.doc.documentElement.getAttribute("lang"), "en");
+  assert.equal(btnText(b, "#check"), "Check my message");
+});
+
+test("switching works when browser storage is unavailable", async () => {
+  const t = await mount({ storage: "blocked" });
+  assert.equal(t.doc.documentElement.getAttribute("lang"), "ms-MY");
+  t.click(t.doc.querySelector('[data-set-lang="en"]'));
+  assert.equal(t.doc.documentElement.getAttribute("lang"), "en");
+  assert.equal(btnText(t, "#check"), "Check my message");
+  await t.check(FLAGGED);
+  assert.match(t.resultText(), /may come across as aggressive/);
+});
+
+test("detector limitation notice is shown in both languages", async () => {
+  const t = await mount({ lang: "ms" });
+  assert.equal(t.$("lang-notice").textContent, NOTICE.ms);
+  t.click(t.doc.querySelector('[data-set-lang="en"]'));
+  assert.equal(t.$("lang-notice").textContent, NOTICE.en);
+  assert.match(t.$("draft").getAttribute("aria-describedby"), /lang-notice/);
+});
+
+test("detector input examples stay in English in both languages", async () => {
+  const t = await mount({ lang: "ms" });
+  const s = [...t.doc.querySelectorAll(".scenario")];
+  t.click(s[0]);
+  assert.equal(t.$("draft").value, "You are such an idiot. You never do your part.");
+  assert.equal(s[0].querySelector("span").getAttribute("lang"), "en");
+  assert.equal(t.$("draft").getAttribute("lang"), "en");
+  assert.match(s[0].querySelector(".gloss").textContent, /^Maksudnya:/);   // Malay gloss only in Malay mode
+  t.click(t.doc.querySelector('[data-set-lang="en"]'));
+  assert.equal(s[0].querySelector(".gloss").hidden, true);
+});
+
+test("hero example text is translated and the language switch keeps the chosen example", async () => {
+  const t = await mount({ lang: "ms" });
+  assert.match(t.$("ex-draft").textContent, /Awak tak pernah/);
+  t.click(t.$("ex-toggle")); await new Promise((r) => setTimeout(r, 260));
+  assert.match(t.$("ex-draft").textContent, /Awak memang bodoh/);
+  t.click(t.doc.querySelector('[data-set-lang="en"]'));
+  assert.match(t.$("ex-draft").textContent, /You are such an idiot/);
+});
+
+test("every UI string exists in both languages; Malay avoids common Indonesian forms", () => {
+  const glossLike = /(gloss|Gloss)/;
+  for (const k of I18N.keys) {
+    assert.ok(typeof I18N.ms[k] === "string" && I18N.ms[k].length > 0, "ms missing: " + k);
+    if (!glossLike.test(k)) assert.ok(typeof I18N.en[k] === "string" && I18N.en[k].length > 0, "en missing: " + k);
+  }
+  const html = HTML + SITE_JS;
+  const used = new Set([...html.matchAll(/data-i18n(?:-attr)?="([^"]+)"/g)].flatMap((m) => m[1].split(";").map((p) => p.split(":").pop().trim())));
+  for (const k of used) assert.ok(k in I18N.ms, "unknown key used in page: " + k);
+  const indo = /\b(kirim\w*|unduh\w*|mahasiswa|perangkat lunak|pesan|silakan|sekedar|kata sandi|berbagi|aplikasi web)\b/i;
+  for (const k of I18N.keys) assert.doesNotMatch(I18N.ms[k], indo, "Indonesian-looking term in " + k + ": " + I18N.ms[k]);
+});
+
+test("stable keys: element ids and functions used by the page are unchanged", async () => {
+  const t = await mount();
+  for (const id of ["draft", "check", "status", "result", "count", "reflect", "reflection", "write-revision", "reset",
+                    "revision-wrap", "revision", "check-revision", "revision-result", "ex-toggle", "lang-notice"]) {
+    assert.ok(t.$(id), "missing id " + id);
+  }
 });

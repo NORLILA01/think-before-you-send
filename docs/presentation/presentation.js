@@ -1,8 +1,10 @@
-/* Think Before You Send: presentation controls.
+/* Think Before You Send: presentation controls (bilingual).
    Previous/Next buttons, ArrowLeft/ArrowRight/PageUp/PageDown/Home/End, slide number in the URL hash.
-   No auto-advance. Keys are ignored while typing in a field or when a modifier key is held. */
+   No auto-advance. Keys are ignored while typing in a field or when a modifier key is held.
+   Switching language keeps the current slide and sends nothing anywhere. */
 (function () {
   "use strict";
+  var L = window.TBYS_LANG;
   var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
   var canvas = document.getElementById("canvas");
   var prev = document.getElementById("prev"), next = document.getElementById("next"), pos = document.getElementById("pos");
@@ -12,12 +14,19 @@
     var n = parseInt((location.hash || "").replace("#", ""), 10);
     return n >= 1 && n <= slides.length ? n - 1 : 0;
   }
+  function labels() {
+    slides.forEach(function (s, k) {
+      var title = s.getAttribute("data-title-literal") || L.t(s.getAttribute("data-title-key"));
+      s.setAttribute("aria-label", L.t("deck.slideLabel", { n: k + 1, total: slides.length, title: title }));
+    });
+    pos.textContent = L.t("deck.pos", { n: index + 1, total: slides.length });
+  }
   function show(i, updateHash) {
     index = Math.max(0, Math.min(slides.length - 1, i));
     slides.forEach(function (s, k) { s.hidden = k !== index; });
     prev.disabled = index === 0;
     next.disabled = index === slides.length - 1;
-    pos.textContent = "Slide " + (index + 1) + " of " + slides.length;
+    labels();
     if (updateHash) history.replaceState(null, "", "#" + (index + 1));
   }
   function fit() {
@@ -46,6 +55,8 @@
   window.addEventListener("beforeprint", function () { canvas.style.setProperty("--scale", "1"); });
   window.addEventListener("afterprint", fit);
 
+  L.onChange(function () { labels(); });   // same slide, new labels
+  L.init();
   fit();
   show(fromHash(), false);
 })();
