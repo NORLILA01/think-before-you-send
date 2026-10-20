@@ -3,20 +3,22 @@
    otherwise the system stacks below apply (no font files are bundled). */
 
 :root {
-  --paper: #F6F8FC;
-  --surface: #FFFFFF;
-  --ink: #152B46;
-  --ink-soft: #3B4F68;
-  --cobalt: #294BCC;
-  --cobalt-dark: #1F3AA3;
-  --lagoon: #0B6B63;
+  --paper: #FAF8F0;
+  --surface: #FFFEF8;
+  --ink: #253B2D;
+  --ink-soft: #4B5F50;
+  --cobalt: #466344;
+  --cobalt-dark: #304B33;
+  --lagoon: #4B6950;
   --apricot: #FFD0A8;
   --apricot-ink: #6B3A12;
-  --border: #CBD5E4;
-  --border-strong: #8FA0B8;
-  --control: #5B6E88;        /* form-control boundaries: 5.2:1 on white (>= 3:1 required) */
-  --focus: #1F3AA3;
+  --border: #D1DAC8;
+  --border-strong: #8C9E84;
+  --control: #61745B;        /* visible form-control boundaries on ivory */
+  --focus: #304B33;
+  --tint: #E8EEDF;
 
+  /* Analysis-result colors stay distinct from the decorative sage palette. */
   --ok-bg: #E6F4EE;     --ok-border: #0B6B63;     --ok-ink: #084F49;
   --warn-bg: #FFF4DB;   --warn-border: #8A5A00;   --warn-ink: #5C3B00;
   --bad-bg: #FDECEC;    --bad-border: #A3262A;    --bad-ink: #7A1A1D;
@@ -69,7 +71,7 @@ a:hover { color: var(--cobalt-dark); }
 .lang-switch { order: 2; margin-left: auto; display: inline-flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--surface); }
 .lang-btn { font: 700 .95rem/1 var(--head); min-width: 52px; min-height: 44px; padding: .4rem .8rem; background: var(--surface); color: var(--ink); border: 0; cursor: pointer; }
 .lang-btn + .lang-btn { border-left: 2px solid var(--ink); }
-.lang-btn:hover { background: var(--info-bg); }
+.lang-btn:hover { background: var(--tint); }
 .lang-btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .lang-btn[aria-pressed="true"]::before { content: "\2713\00a0"; }   /* check mark: active state is not colour-only */
 .lang-btn:focus-visible { outline-offset: -4px; }
@@ -87,9 +89,9 @@ a:hover { color: var(--cobalt-dark); }
 }
 .btn:hover { background: var(--cobalt-dark); border-color: var(--cobalt-dark); color: #fff; }
 .btn--secondary { background: transparent; color: var(--cobalt); }
-.btn--secondary:hover { background: var(--info-bg); color: var(--cobalt-dark); border-color: var(--cobalt-dark); }
+.btn--secondary:hover { background: var(--tint); color: var(--cobalt-dark); border-color: var(--cobalt-dark); }
 .btn--quiet { background: transparent; border-color: var(--control); color: var(--ink); font-weight: 600; }
-.btn--quiet:hover { background: #fff; color: var(--ink); border-color: var(--ink); }
+.btn--quiet:hover { background: var(--surface); color: var(--ink); border-color: var(--ink); }
 .btn[disabled], .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 
 /* Hero */
@@ -136,7 +138,7 @@ a:hover { color: var(--cobalt-dark); }
 @media (min-width: 760px) { .scenario-list { grid-template-columns: repeat(3, 1fr); } }
 .scenario-list li { display: flex; }
 .scenario { height: 100%; width: 100%; text-align: left; background: var(--paper); border: 1px solid var(--control); border-radius: 12px; padding: .75rem .9rem; cursor: pointer; font: inherit; color: var(--ink); }
-.scenario:hover { border-color: var(--cobalt); background: var(--info-bg); }
+.scenario:hover { border-color: var(--cobalt); background: var(--tint); }
 .scenario strong { display: block; font: 700 .85rem/1.2 var(--head); text-transform: uppercase; letter-spacing: .05em; color: var(--lagoon); margin-bottom: .25rem; }
 .scenario span { font-size: .98rem; display: block; }
 .field-label { display: block; font: 700 1.05rem/1.3 var(--head); margin-bottom: .35rem; }
@@ -226,7 +228,7 @@ mark sup { font: 800 .7em var(--head); margin-left: .2em; }
 table { border-collapse: collapse; width: 100%; background: var(--surface); }
 caption { text-align: left; font: 700 1rem/1.3 var(--head); padding-bottom: .5rem; }
 th, td { text-align: left; padding: .65rem .8rem; border: 1px solid var(--border-strong); vertical-align: top; }
-th { background: var(--info-bg); font-family: var(--head); }
+th { background: var(--tint); font-family: var(--head); }
 .not-measured { background: var(--warn-bg); border: 2px solid var(--warn-border); color: var(--warn-ink); border-radius: 14px; padding: 1rem 1.25rem; }
 .not-measured h3 { margin-bottom: .3rem; }
 .not-measured p { margin: 0; max-width: none; }
@@ -239,7 +241,7 @@ summary { cursor: pointer; font-weight: 700; font-family: var(--head); }
 
 /* Footer */
 .site-footer { background: var(--ink); color: #fff; padding-block: 2rem; margin-top: 2rem; }
-.site-footer a { color: #FFD9B8; }
+.site-footer a { color: #E0E8D5; }
 .site-footer p { max-width: none; margin-bottom: .5rem; }
 
 /* Motion and print */
